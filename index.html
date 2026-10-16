@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ChatPre - Secure Anonymous P2P Calls</title>
     
-    <!-- PWA & Manifest Inline Definition (PWABuilder Uyumlu) -->
-    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22ChatPre%22,%22short_name%22:%22ChatPre%22,%22start_url%22:%22/ChatPre/%22,%22display%22:%22standalone%22,%22background_color%22:%22%230a0a0c%22,%22theme_color%22:%22%23facc15%22,%22icons%22:[{%22src%22:%22https://raw.githubusercontent.com/hersey9/ChatPre/main/icon.png%22,%22sizes%22:%22512x512%22,%22type%22:%22image/png%22}]}">
+    <!-- PWABuilder Uyumlu Tam Manifest Tanımı -->
+    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22ChatPre%22,%22short_name%22:%22ChatPre%22,%22description%22:%22ChatPre - Secure Anonymous P2P Calls%22,%22start_url%22:%22/ChatPre/%22,%22display%22:%22standalone%22,%22background_color%22:%22%230a0a0c%22,%22theme_color%22:%22%23facc15%22,%22icons%22:[{%22src%22:%22https://raw.githubusercontent.com/hersey9/ChatPre/main/icon.png%22,%22sizes%22:%22512x512%22,%22type%22:%22image/png%22}]}">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
@@ -145,7 +145,7 @@
 
             peer.on('error', (err) => {
                 console.error(err);
-                setTimeout(initPeer, 3000); // Hata durumunda yeniden dene
+                setTimeout(initPeer, 3000);
             });
         }
 
@@ -161,3 +161,76 @@
             }
             return localStream;
         }
+
+        // Kullanıcı Ara
+        async function callUser() {
+            const targetId = document.getElementById('target-id-input').value.trim();
+            if (!targetId) return alert("Lütfen geçerli bir PreID girin!");
+            if (targetId === myPreID) return alert("Kendini arayamazsın kral!");
+
+            const stream = await getLocalStream();
+            if (!stream) return;
+
+            const call = peer.call(targetId, stream);
+            setupCallEvents(call);
+        }
+
+        // Aramayı Kabul Et
+        async function acceptCall() {
+            document.getElementById('incoming-call-modal').classList.add('hidden');
+            document.getElementById('incoming-call-modal').classList.remove('flex');
+
+            const stream = await getLocalStream();
+            if (!stream) return;
+
+            incomingCallData.answer(stream);
+            setupCallEvents(incomingCallData);
+        }
+
+        // Aramayı Reddet
+        function rejectCall() {
+            document.getElementById('incoming-call-modal').classList.add('hidden');
+            document.getElementById('incoming-call-modal').classList.remove('flex');
+            if (incomingCallData) incomingCallData.close();
+        }
+
+        // Arama Olayları
+        function setupCallEvents(call) {
+            currentCall = call;
+            document.getElementById('video-container').classList.remove('hidden');
+            document.getElementById('video-container').classList.add('flex');
+
+            call.on('stream', (remoteStream) => {
+                document.getElementById('remote-video').srcObject = remoteStream;
+            });
+
+            call.on('close', () => {
+                endCall();
+            });
+        }
+
+        // Aramayı Sonlandır
+        function endCall() {
+            if (currentCall) currentCall.close();
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            document.getElementById('video-container').classList.add('hidden');
+            document.getElementById('video-container').classList.remove('flex');
+            document.getElementById('remote-video').srcObject = null;
+            document.getElementById('local-video').srcObject = null;
+        }
+
+        // PreID Kopyala
+        function copyPreID() {
+            const idText = document.getElementById('my-peer-id').innerText;
+            navigator.clipboard.writeText(idText);
+            alert("PreID kopyalandı: " + idText);
+        }
+
+        // Sayfa açılınca başlat
+        window.onload = initPeer;
+    </script>
+</body>
+</html>
