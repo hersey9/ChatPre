@@ -1,0 +1,16 @@
+{
+  "name": "ChatPre App",
+  "short_name": "ChatPre",
+  "start_url": "/ChatPre/",
+  "display": "standalone",
+  "background_color": "#0a0a0c",
+  "theme_color": "#facc15",
+  "description": "ChatPre - Anonymous Calling App",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/hersey9/ChatPre/main/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
