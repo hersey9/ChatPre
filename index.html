@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="tr" class="h-full bg-slate-950 text-slate-100">
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChatPre - Secure P2P Calls</title>
+    <title>ChatPre - Secure Anonymous P2P Calls</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,20 +11,24 @@
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { background-color: #0a0a0c; color: #f3f4f6; font-family: system-ui, -apple-system, sans-serif; }
+    </style>
 </head>
-<body class="h-full flex flex-col items-center justify-between p-4 bg-[#0a0a0c] selection:bg-yellow-400 selection:text-black">
+<body class="min-h-screen flex flex-col items-center justify-between p-4 selection:bg-yellow-400 selection:text-black">
 
     <!-- Header -->
     <header class="w-full max-w-md flex justify-between items-center py-4 border-b border-zinc-800">
         <div class="flex items-center space-x-2">
-            <div class="bg-yellow-400 text-black p-2 rounded-xl font-black text-xl shadow-lg">
+            <div class="bg-yellow-400 text-black p-2 rounded-xl font-black text-xl shadow-lg shadow-yellow-400/20">
                 <i class="fa-solid fa-shield-halved"></i>
             </div>
-            <h1 class="text-2xl font-black tracking-wider text-yellow-400">ChatPre</h1>
+            <h1 class="text-2xl font-black tracking-wider bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">ChatPre</h1>
         </div>
         <div class="flex items-center space-x-2 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-full text-xs font-medium text-emerald-400">
             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Canlı Bağlantı</span>
+            <span id="connection-status">Sistem Aktif</span>
         </div>
     </header>
 
@@ -32,45 +36,54 @@
     <main class="w-full max-w-md flex-1 flex flex-col justify-center items-center py-6 space-y-6">
         
         <!-- Kimlik Kartı -->
-        <div class="w-full bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl">
-            <p class="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-1">Senin Anonim PreID'n</p>
-            <div class="flex items-center justify-between bg-black/50 border border-zinc-800 rounded-2xl p-4">
-                <span id="my-peer-id" class="font-mono text-base font-bold text-yellow-400 truncate">Bağlanıyor...</span>
-                <button onclick="copyPreID()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-2 rounded-xl text-xs font-bold transition">
+        <div class="w-full bg-zinc-900/80 border border-zinc-800/80 rounded-3xl p-6 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-yellow-400/5 rounded-full blur-2xl pointer-events-none"></div>
+            
+            <p class="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-1">Anonim Kimliğin (PreID)</p>
+            <div class="flex items-center justify-between bg-black/40 border border-zinc-800 rounded-2xl p-4">
+                <span id="my-peer-id" class="font-mono text-lg font-bold text-yellow-400 truncate">Bağlanıyor...</span>
+                <button onclick="copyPreID()" class="bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-zinc-300 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
                     <i class="fa-regular fa-copy"></i> Kopyala
                 </button>
             </div>
         </div>
 
-        <!-- Arama Paneli -->
-        <div class="w-full bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-4">
+        <!-- Arama Yapma Paneli -->
+        <div class="w-full bg-zinc-900/80 border border-zinc-800/80 rounded-3xl p-6 backdrop-blur-xl shadow-2xl space-y-4">
             <h2 class="text-sm font-bold text-zinc-300 flex items-center gap-2">
                 <i class="fa-solid fa-phone-volume text-yellow-400"></i> Arkadaşını Ara
             </h2>
             <div class="flex gap-2">
-                <input type="text" id="target-id-input" placeholder="PreID Girin (Örn: cp-9x...)" class="flex-1 bg-black/50 border border-zinc-800 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 text-white font-mono">
-                <button onclick="callUser()" class="bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold px-5 rounded-2xl transition shadow-lg">
+                <input type="text" id="target-id-input" placeholder="PreID Girin (Örn: cp-9x...)" class="flex-1 bg-black/40 border border-zinc-800 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-yellow-400 text-white placeholder-zinc-600 font-mono">
+                <button onclick="callUser()" class="bg-yellow-400 hover:bg-yellow-300 active:scale-95 text-black font-extrabold px-5 rounded-2xl transition shadow-lg shadow-yellow-400/20 flex items-center justify-center">
                     <i class="fa-solid fa-video"></i>
                 </button>
             </div>
         </div>
 
-        <!-- Video Alanı -->
+        <!-- Video Alanı (Görüşme Anı) -->
         <div id="video-container" class="w-full hidden flex-col space-y-4">
             <div class="relative w-full aspect-[3/4] bg-black rounded-3xl border border-zinc-800 overflow-hidden shadow-2xl">
-                <!-- Karşı Taraf -->
+                <!-- Karşı Tarafın Videosu -->
                 <video id="remote-video" autoplay playsinline class="w-full h-full object-cover"></video>
-                <!-- Kendi Kameramız -->
+                <!-- Kendi Kameramız (Küçük Ekran) -->
                 <div class="absolute bottom-4 right-4 w-28 aspect-[3/4] bg-zinc-900 rounded-2xl border border-zinc-700 overflow-hidden shadow-lg">
                     <video id="local-video" autoplay muted playsinline class="w-full h-full object-cover"></video>
                 </div>
             </div>
-            <button onclick="endCall()" class="w-full bg-red-600 hover:bg-red-500 text-white font-extrabold py-3.5 rounded-2xl transition shadow-lg flex items-center justify-center gap-2">
+            <!-- Aramayı Kapat Butonu -->
+            <button onclick="endCall()" class="w-full bg-red-600 hover:bg-red-500 active:scale-95 text-white font-extrabold py-3.5 rounded-2xl transition shadow-lg shadow-red-600/30 flex items-center justify-center gap-2">
                 <i class="fa-solid fa-phone-slash"></i> Aramayı Sonlandır
             </button>
         </div>
 
     </main>
+
+    <!-- Footer -->
+    <footer class="w-full max-w-md text-center py-4 border-t border-zinc-800/60 text-xs text-zinc-500 flex justify-between items-center">
+        <span>ChatPre v1.0.0</span>
+        <span class="text-zinc-400 font-medium"><i class="fa-solid fa-lock text-emerald-500"></i> Uçtan Uca P2P Şifreli</span>
+    </footer>
 
     <!-- Gelen Arama Modalı -->
     <div id="incoming-call-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
@@ -80,11 +93,11 @@
             </div>
             <div>
                 <h3 class="text-lg font-bold text-white">Gelen Arama Var!</h3>
-                <p id="caller-id-text" class="text-xs font-mono text-zinc-400 mt-1">Biri seni arıyor...</p>
+                <p id="caller-id-text" class="text-xs font-mono text-zinc-400 mt-1">Anonim Kullanıcı arıyor...</p>
             </div>
             <div class="flex gap-3">
                 <button onclick="rejectCall()" class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold py-3 rounded-2xl transition">Reddet</button>
-                <button onclick="acceptCall()" class="flex-1 bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold py-3 rounded-2xl transition shadow-lg">Kabul Et</button>
+                <button onclick="acceptCall()" class="flex-1 bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold py-3 rounded-2xl transition shadow-lg shadow-yellow-400/20">Kabul Et</button>
             </div>
         </div>
     </div>
@@ -96,6 +109,7 @@
         let currentCall;
         let incomingCallData;
 
+        // Rastgele Anonim PreID Üretici
         function generatePreID() {
             const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
             let id = 'cp-';
@@ -107,12 +121,14 @@
 
         const myPreID = generatePreID();
 
+        // PeerJS Bağlantısını Başlat (Google STUN Sunucuları ile Çift Yönlü Akış Garanti)
         function initPeer() {
             peer = new Peer(myPreID, {
                 config: {
                     iceServers: [
                         { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' }
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' }
                     ]
                 }
             });
@@ -127,8 +143,13 @@
                 document.getElementById('incoming-call-modal').classList.remove('hidden');
                 document.getElementById('incoming-call-modal').classList.add('flex');
             });
+
+            peer.on('error', (err) => {
+                console.error(err);
+            });
         }
 
+        // Kamerayı ve Mikrofonu Aç
         async function getLocalStream() {
             if (!localStream) {
                 try {
@@ -141,10 +162,12 @@
             return localStream;
         }
 
+        // Kullanıcı Ara
         async function callUser() {
             const targetId = document.getElementById('target-id-input').value.trim();
-            if (!targetId) return alert("PreID girmelisin!");
-            
+            if (!targetId) return alert("Lütfen geçerli bir PreID girin!");
+            if (targetId === myPreID) return alert("Kendini arayamazsın kral!");
+
             const stream = await getLocalStream();
             if (!stream) return;
 
@@ -152,57 +175,4 @@
             setupCallEvents(call);
         }
 
-        async function acceptCall() {
-            document.getElementById('incoming-call-modal').classList.add('hidden');
-            document.getElementById('incoming-call-modal').classList.remove('flex');
-
-            const stream = await getLocalStream();
-            if (!stream) return;
-
-            incomingCallData.answer(stream);
-            setupCallEvents(incomingCallData);
-        }
-
-        function rejectCall() {
-            document.getElementById('incoming-call-modal').classList.add('hidden');
-            document.getElementById('incoming-call-modal').classList.remove('flex');
-            if (incomingCallData) incomingCallData.close();
-        }
-
-        function setupCallEvents(call) {
-            currentCall = call;
-            document.getElementById('video-container').classList.remove('hidden');
-            document.getElementById('video-container').classList.add('flex');
-
-            call.on('stream', (remoteStream) => {
-                const remoteVid = document.getElementById('remote-video');
-                remoteVid.srcObject = remoteStream;
-                remoteVid.play().catch(e => console.log(e));
-            });
-
-            call.on('close', () => {
-                endCall();
-            });
-        }
-
-        function endCall() {
-            if (currentCall) currentCall.close();
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-                localStream = null;
-            }
-            document.getElementById('video-container').classList.add('hidden');
-            document.getElementById('video-container').classList.remove('flex');
-            document.getElementById('remote-video').srcObject = null;
-            document.getElementById('local-video').srcObject = null;
-        }
-
-        function copyPreID() {
-            navigator.clipboard.writeText(document.getElementById('my-peer-id').innerText);
-            alert("PreID kopyalandı!");
-        }
-
-        window.onload = initPeer;
-    </script>
-</body>
-</html>
+        // Aramayı Kabul
