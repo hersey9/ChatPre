@@ -64,7 +64,7 @@
         <!-- Video Alanı (Görüşme Anı) -->
         <div id="video-container" class="w-full hidden flex-col space-y-4">
             <div class="relative w-full aspect-[3/4] bg-black rounded-3xl border border-zinc-800 overflow-hidden shadow-2xl">
-                <!-- Karşı Tarafın Videosu -->
+                <!-- Karşı Tarafın Videosu ve Sesi -->
                 <video id="remote-video" autoplay playsinline class="w-full h-full object-cover"></video>
                 <!-- Kendi Kameramız (Küçük Ekran) -->
                 <div class="absolute bottom-4 right-4 w-28 aspect-[3/4] bg-zinc-900 rounded-2xl border border-zinc-700 overflow-hidden shadow-lg">
@@ -121,8 +121,28 @@
 
         const myPreID = generatePreID();
 
-        // PeerJS Bağlantısını Başlat (Google STUN Sunucuları ile Çift Yönlü Akış Garanti)
+        // Sayfa Açıldığında Bildirim İzni İste
+        function requestNotificationPermission() {
+            if ("Notification" in window && Notification.permission !== "granted") {
+                Notification.requestPermission();
+            }
+        }
+
+        // Gelen Arama Bildirimi Gönder
+        function showNotification(callerId) {
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification("ChatPre - Gelen Arama!", {
+                    body: `${callerId} sizi görüntülü arıyor!`,
+                    icon: "https://raw.githubusercontent.com/hersey9/ChatPre/main/icon.png",
+                    requireInteraction: true
+                });
+            }
+        }
+
+        // PeerJS Bağlantısını Başlat (Google STUN Sunucuları ile Çift Yönlü Ses/Görüntü Garantisi)
         function initPeer() {
+            requestNotificationPermission();
+
             peer = new Peer(myPreID, {
                 config: {
                     iceServers: [
@@ -142,14 +162,15 @@
                 document.getElementById('caller-id-text').innerText = `Arayan: ${call.peer}`;
                 document.getElementById('incoming-call-modal').classList.remove('hidden');
                 document.getElementById('incoming-call-modal').classList.add('flex');
+                showNotification(call.peer);
             });
 
             peer.on('error', (err) => {
-                console.error(err);
+                console.error("PeerJS Hatası:", err);
             });
         }
 
-        // Kamerayı ve Mikrofonu Aç
+        // Kamerayı ve Mikrofonu Aç (Karşıya ses ve görüntü gitmesi için şart)
         async function getLocalStream() {
             if (!localStream) {
                 try {
@@ -175,4 +196,64 @@
             setupCallEvents(call);
         }
 
-        // Aramayı Kabul
+        // Aramayı Kabul Et (Mikrofon ve kamera akışını karşıya bağlar)
+        async function acceptCall() {
+            document.getElementById('incoming-call-modal').classList.add('hidden');
+            document.getElementById('incoming-call-modal').classList.remove('flex');
+
+            const stream = await getLocalStream();
+            if (!stream) return;
+
+            incomingCallData.answer(stream);
+            setupCallEvents(incomingCallData);
+        }
+
+        // Aramayı Reddet
+        function rejectCall() {
+            document.getElementById('incoming-call-modal').classList.add('hidden');
+            document.getElementById('incoming-call-modal').classList.remove('flex');
+            if (incomingCallData) incomingCallData.close();
+        }
+
+        // Arama Olayları (Karşı tarafın sesini ve kamerasını ekrana/hoparlöre verir)
+        function setupCallEvents(call) {
+            currentCall = call;
+            document.getElementById('video-container').classList.remove('hidden');
+            document.getElementById('video-container').classList.add('flex');
+
+            call.on('stream', (remoteStream) => {
+                const remoteVideo = document.getElementById('remote-video');
+                remoteVideo.srcObject = remoteStream;
+                remoteVideo.play().catch(e => console.log("Medya Oynatma Hatası:", e));
+            });
+
+            call.on('close', () => {
+                endCall();
+            });
+        }
+
+        // Aramayı Sonlandır
+        function endCall() {
+            if (currentCall) currentCall.close();
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            document.getElementById('video-container').classList.add('hidden');
+            document.getElementById('video-container').classList.remove('flex');
+            document.getElementById('remote-video').srcObject = null;
+            document.getElementById('local-video').srcObject = null;
+        }
+
+        // PreID Kopyala
+        function copyPreID() {
+            const idText = document.getElementById('my-peer-id').innerText;
+            navigator.clipboard.writeText(idText);
+            alert("PreID kopyalandı: " + idText);
+        }
+
+        // Sayfa açılınca başlat
+        window.onload = initPeer;
+    </script>
+</body>
+</html>
