@@ -24,11 +24,18 @@
             <div class="bg-yellow-400 text-black p-2 rounded-xl font-black text-xl shadow-lg shadow-yellow-400/20">
                 <i class="fa-solid fa-shield-halved"></i>
             </div>
-            <h1 class="text-2xl font-black tracking-wider bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">ChatPre</h1>
+            <div>
+                <h1 class="text-2xl font-black tracking-wider bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">ChatPre</h1>
+            </div>
         </div>
-        <div class="flex items-center space-x-2 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-full text-xs font-medium text-emerald-400">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" id="status-dot"></span>
-            <span id="connection-status">Bağlanıyor...</span>
+        <div class="flex flex-col items-end gap-1">
+            <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                <i class="fa-solid fa-flask mr-1"></i> GELİŞTİRME AŞAMASINDADIR
+            </span>
+            <div class="flex items-center space-x-1.5 bg-zinc-900 border border-zinc-800 px-2.5 py-1 rounded-full text-xs font-medium text-emerald-400">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" id="status-dot"></span>
+                <span id="connection-status">Bağlanıyor...</span>
+            </div>
         </div>
     </header>
 
@@ -228,7 +235,6 @@
                 const remoteVideo = document.getElementById('remote-video');
                 remoteVideo.srcObject = remoteStream;
                 
-                // Tarayıcı çakışma (AbortError) hatalarını tamamen yutan güvenli oynatma mekanizması
                 const playPromise = remoteVideo.play();
                 if (playPromise !== undefined) {
                     playPromise.catch(error => {
