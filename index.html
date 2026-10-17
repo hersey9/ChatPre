@@ -137,14 +137,16 @@
         }
 
         async function initLocalCameraFirst() {
-            try {
-                localStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { width: { ideal: 1280 }, height: { ideal: 720 } }, 
-                    audio: true 
-                });
-                document.getElementById('local-video').srcObject = localStream;
-            } catch (err) {
-                alert("Kamera ve mikrofon iznine mutlaka izin vermelisin!");
+            if (!localStream) {
+                try {
+                    localStream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { width: { ideal: 1280 }, height: { ideal: 720 } }, 
+                        audio: true 
+                    });
+                    document.getElementById('local-video').srcObject = localStream;
+                } catch (err) {
+                    alert("Kamera ve mikrofon iznine mutlaka izin vermelisin!");
+                }
             }
         }
 
@@ -154,7 +156,6 @@
 
             document.getElementById('my-peer-id').innerText = myPreID;
 
-            // Güçlendirilmiş TURN ve STUN Konfigürasyonu (Mobil ve Ev Ağı Engellerini Aşmak İçin)
             peer = new Peer(myPreID, {
                 config: {
                     iceServers: [
@@ -164,11 +165,6 @@
                         { urls: 'stun:openrelay.metered.ca:80' },
                         {
                             urls: 'turn:openrelay.metered.ca:80',
-                            username: 'openrelayproject',
-                            credential: 'openrelayproject'
-                        },
-                        {
-                            urls: 'turn:openrelay.metered.ca:443',
                             username: 'openrelayproject',
                             credential: 'openrelayproject'
                         }
@@ -191,8 +187,6 @@
 
             peer.on('error', (err) => {
                 console.error("PeerJS Hatası:", err);
-                document.getElementById('connection-status').innerText = "Bağlantı Hatası!";
-                document.getElementById('status-dot').className = "w-2 h-2 rounded-full bg-red-500";
             });
         }
 
@@ -201,9 +195,7 @@
             if (!targetId) return alert("Lütfen geçerli bir PreID girin!");
             if (targetId === myPreID) return alert("Kendini arayamazsın kral!");
 
-            if (!localStream) {
-                await initLocalCameraFirst();
-            }
+            await initLocalCameraFirst();
             if (!localStream) return;
 
             const call = peer.call(targetId, localStream);
@@ -214,13 +206,11 @@
             document.getElementById('incoming-call-modal').classList.add('hidden');
             document.getElementById('incoming-call-modal').classList.remove('flex');
 
-            if (!localStream) {
-                await initLocalCameraFirst();
-            }
+            await initLocalCameraFirst();
             if (!localStream) return;
 
             incomingCallData.answer(localStream);
-            setupCallDetails(incomingCallData);
+            setupCallEvents(incomingCallData);
         }
 
         function rejectCall() {
@@ -237,7 +227,14 @@
             call.on('stream', (remoteStream) => {
                 const remoteVideo = document.getElementById('remote-video');
                 remoteVideo.srcObject = remoteStream;
-                remoteVideo.play().catch(e => console.log("Medya Oynatma Hatası:", e));
+                
+                // Tarayıcı çakışma (AbortError) hatalarını tamamen yutan güvenli oynatma mekanizması
+                const playPromise = remoteVideo.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.log("Medya akışı güncelleniyor...", error);
+                    });
+                }
             });
 
             call.on('close', () => {
@@ -245,16 +242,8 @@
             });
         }
 
-        function setupCallDetails(call) {
-            setupCallEvents(call);
-        }
-
         function endCall() {
             if (currentCall) currentCall.close();
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-                localStream = null;
-            }
             document.getElementById('video-container').classList.add('hidden');
             document.getElementById('video-container').classList.remove('flex');
             document.getElementById('remote-video').srcObject = null;
