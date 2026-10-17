@@ -138,7 +138,10 @@
 
         async function initLocalCameraFirst() {
             try {
-                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                localStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 } }, 
+                    audio: true 
+                });
                 document.getElementById('local-video').srcObject = localStream;
             } catch (err) {
                 alert("Kamera ve mikrofon iznine mutlaka izin vermelisin!");
@@ -151,14 +154,24 @@
 
             document.getElementById('my-peer-id').innerText = myPreID;
 
-            // PeerJS bağlantısı
+            // Güçlendirilmiş TURN ve STUN Konfigürasyonu (Mobil ve Ev Ağı Engellerini Aşmak İçin)
             peer = new Peer(myPreID, {
                 config: {
                     iceServers: [
                         { urls: 'stun:stun.l.google.com:19302' },
                         { urls: 'stun:stun1.l.google.com:19302' },
                         { urls: 'stun:stun2.l.google.com:19302' },
-                        { urls: 'stun:stun.services.mozilla.com' }
+                        { urls: 'stun:openrelay.metered.ca:80' },
+                        {
+                            urls: 'turn:openrelay.metered.ca:80',
+                            username: 'openrelayproject',
+                            credential: 'openrelayproject'
+                        },
+                        {
+                            urls: 'turn:openrelay.metered.ca:443',
+                            username: 'openrelayproject',
+                            credential: 'openrelayproject'
+                        }
                     ]
                 }
             });
@@ -207,7 +220,7 @@
             if (!localStream) return;
 
             incomingCallData.answer(localStream);
-            setupCallEvents(incomingCallData);
+            setupCallDetails(incomingCallData);
         }
 
         function rejectCall() {
@@ -227,17 +240,21 @@
                 remoteVideo.play().catch(e => console.log("Medya Oynatma Hatası:", e));
             });
 
-            call.on('error', (err) => {
-                console.error("Arama Hatası:", err);
-            });
-
             call.on('close', () => {
                 endCall();
             });
         }
 
+        function setupCallDetails(call) {
+            setupCallEvents(call);
+        }
+
         function endCall() {
             if (currentCall) currentCall.close();
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
             document.getElementById('video-container').classList.add('hidden');
             document.getElementById('video-container').classList.remove('flex');
             document.getElementById('remote-video').srcObject = null;
