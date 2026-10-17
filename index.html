@@ -109,7 +109,6 @@
         let currentCall;
         let incomingCallData;
 
-        // Rastgele Anonim PreID Üretici
         function generatePreID() {
             const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
             let id = 'cp-';
@@ -121,14 +120,12 @@
 
         const myPreID = generatePreID();
 
-        // Sayfa Açıldığında Bildirim İzni İste
         function requestNotificationPermission() {
             if ("Notification" in window && Notification.permission !== "granted") {
                 Notification.requestPermission();
             }
         }
 
-        // Gelen Arama Bildirimi Gönder
         function showNotification(callerId) {
             if ("Notification" in window && Notification.permission === "granted") {
                 new Notification("ChatPre - Gelen Arama!", {
@@ -139,14 +136,11 @@
             }
         }
 
-        // PeerJS Bağlantısını Başlat (Özel açık kaynak peer.reactserver veya alternatif STUN ayarları ile)
         function initPeer() {
             requestNotificationPermission();
-
-            // ID'yi hemen arayüze yaz ki "Bağlanıyor" takıntısı olmasın
             document.getElementById('my-peer-id').innerText = myPreID;
 
-            // Peer nesnesini doğrudan kendi ID'miz ile başlatıyoruz
+            // Genişletilmiş STUN ve Açık Relay Sunucu Havuzu (Mobil ve PC arası engelleri aşmak için)
             peer = new Peer(myPreID, {
                 host: '0.peerjs.com',
                 port: 443,
@@ -157,13 +151,13 @@
                         { urls: 'stun:stun.l.google.com:19302' },
                         { urls: 'stun:stun1.l.google.com:19302' },
                         { urls: 'stun:stun2.l.google.com:19302' },
-                        { urls: 'stun:stun3.l.google.com:19302' }
+                        { urls: 'stun:stun.services.mozilla.com' },
+                        { urls: 'stun:openrelay.metered.ca:80' }
                     ]
                 }
             });
 
             peer.on('open', (id) => {
-                console.log("PeerJS Bağlantısı Başarılı. ID:", id);
                 document.getElementById('connection-status').innerText = "Sistem Aktif";
             });
 
@@ -177,17 +171,16 @@
 
             peer.on('error', (err) => {
                 console.error("PeerJS Hatası:", err);
-                // Bağlantı koparsa bile ID ekranda kalır, kullanıcı mağdur olmaz
-                document.getElementById('connection-status').innerText = "Yeniden Bağlanılıyor...";
-                document.getElementById('connection-status').className = "text-yellow-400";
             });
         }
 
-        // Kamerayı ve Mikrofonu Aç
         async function getLocalStream() {
             if (!localStream) {
                 try {
-                    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    localStream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { width: { ideal: 1280 }, height: { ideal: 720 } }, 
+                        audio: true 
+                    });
                     document.getElementById('local-video').srcObject = localStream;
                 } catch (err) {
                     alert("Kamera ve mikrofon izni vermen gerekiyor!");
@@ -196,7 +189,6 @@
             return localStream;
         }
 
-        // Kullanıcı Ara
         async function callUser() {
             const targetId = document.getElementById('target-id-input').value.trim();
             if (!targetId) return alert("Lütfen geçerli bir PreID girin!");
@@ -209,7 +201,6 @@
             setupCallEvents(call);
         }
 
-        // Aramayı Kabul Et
         async function acceptCall() {
             document.getElementById('incoming-call-modal').classList.add('hidden');
             document.getElementById('incoming-call-modal').classList.remove('flex');
@@ -221,14 +212,12 @@
             setupCallEvents(incomingCallData);
         }
 
-        // Aramayı Reddet
         function rejectCall() {
             document.getElementById('incoming-call-modal').classList.add('hidden');
             document.getElementById('incoming-call-modal').classList.remove('flex');
             if (incomingCallData) incomingCallData.close();
         }
 
-        // Arama Olayları
         function setupCallEvents(call) {
             currentCall = call;
             document.getElementById('video-container').classList.remove('hidden');
@@ -245,10 +234,10 @@
             });
         }
 
-        // Aramayı Sonlandır
         function endCall() {
             if (currentCall) currentCall.close();
             if (localStream) {
+                localStream.getTracks().forceStop = true;
                 localStream.getTracks().forEach(track => track.stop());
                 localStream = null;
             }
@@ -258,14 +247,12 @@
             document.getElementById('local-video').srcObject = null;
         }
 
-        // PreID Kopyala
         function copyPreID() {
             const idText = document.getElementById('my-peer-id').innerText;
             navigator.clipboard.writeText(idText);
             alert("PreID kopyalandı: " + idText);
         }
 
-        // Sayfa açılınca başlat
         window.onload = initPeer;
     </script>
 </body>
